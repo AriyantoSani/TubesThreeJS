@@ -121,7 +121,16 @@ function init() {
     pacman = new THREE.Mesh(pacmanGeometry, pacmanMaterial);
     pacman.position.y = 20;
     scene.add(pacman);
-
+    var listener = new THREE.AudioListener();
+    camera.add(listener);
+    var sound = new THREE.Audio(listener);
+    var audioLoader = new THREE.AudioLoader();
+    audioLoader.load('sounds/pacman_chomp.wav', function(buffer) {
+        sound.setBuffer(buffer);
+        sound.setLoop(true);
+        sound.setVolume(1);
+        sound.play();
+    });
     camera.position.y = pacman.position.y;
     camera.position.z = pacman.position.z + 50;
 
@@ -140,7 +149,6 @@ function init() {
     // var controls = new OrbitControls(camera, renderer.domElement);
     geometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
     geometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-
 
     material = new THREE.MeshBasicMaterial({
         map: earthTexture,
@@ -174,6 +182,7 @@ function onDocumentKeyDown(event) {
     } else if (keyCode == 32) {
         pacman.position.set(0, 0, 0);
     }
+
 };
 
 function object_to_scene(geometry) {
