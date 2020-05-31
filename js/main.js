@@ -1,246 +1,271 @@
-var camera, scene, renderer;
-var geometry, material, mesh;
-var controls, time = Date.now();
-var pacman
-var objects = [];
-var ray;
+var pacman = null;
 
-var blocker = document.getElementById('blocker');
-var instructions = document.getElementById('instructions');
+var camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1000);
+var textureSun = new THREE.TextureLoader().load('textures/matahari.jpg');
+var textureBumi = new THREE.TextureLoader().load('textures/bumi.jpg');
+var sun = null;
+var earth = null;
+var MAP_LEVEL1 = [
+    '# # # # # # # # # # # # # # # # # # # # # # # # # # # #',
+    '# o . . . . . . . . . . . # # . . . . . . . . . . . o #',
+    '# . # # # # . # # # # # . # # . # # # # # . # # # # . #',
+    '# . # # # # . # # # # # . # # . # # # # # . # # # # . #',
+    '# . # # # # . # # # # # . # # . # # # # # . # # # # . #',
+    '# . . . . . . . . . . . . . . . . . . . . . . . . . . #',
+    '# . # # # # . # # . # # # # # # # # . # # . # # # # . #',
+    '# . # # # # . # # . # # # # # # # # . # # . # # # # . #',
+    '# . . . . . . # # . . . . # # . . . . # # . . . . . . #',
+    '# # # # # # . # # # # #   # #   # # # # # . # # # # # #',
+    '          # . # # # # #   # #   # # # # # . #          ',
+    '          # . # #         G           # # . #          ',
+    '          # . # #   # # # # # # # #   # # . #          ',
+    '# # # # # # . # #   #             #   # # . # # # # # #',
+    '            .       #             #       .            ',
+    '# # # # # # . # #   #             #   # # . # # # # # #',
+    '          # . # #   # # # # # # # #   # # . #          ',
+    '          # . # #           C         # # . #          ',
+    '          # . # #   # # # # # # # #   # # . #          ',
+    '# # # # # # . # #   # # # # # # # #   # # . # # # # # #',
+    '# . . . . . . . . . . . . # # . . . . . . . . . . . . #',
+    '# . # # # # . # # # # # . # # . # # # # # . # # # # . #',
+    '# . # # # # . # # # # # . # # . # # # # # . # # # # . #',
+    '# . . . # # . . . . . . . P T . . . . . . . # # . . . #',
+    '# # # . # # . # # . # # # # # # # # . # # . # # . # # #',
+    '# # # . # # . # # . # # # # # # # # . # # . # # . # # #',
+    '# . . . . . . # # . . . . # # . . . . # # . . . . . . #',
+    '# . # # # # # # # # # # . # # . # # # # # # # # # # . #',
+    '# . # # # # # # # # # # . # # . # # # # # # # # # # . #',
+    '# o . . . . . . . . . . . . . . . . . . . . . . . . o #',
+    '# # # # # # # # # # # # # # # # # # # # # # # # # # # #'
+];
 
-var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+var listener = new THREE.AudioListener();
+camera.add(listener);
 
-if (havePointerLock) {
+var sound = new THREE.Audio(listener);
 
-    var element = document.body;
+// var audioLoader = new THREE.AudioLoader();
+// audioLoader.load('sounds/pacman_beginning.mp3', function(buffer) {
+//     sound.setBuffer(buffer);
+//     sound.setLoop(true);
+//     sound.setVolume(0.5);
+//     sound.play();
+// });
 
-    var pointerlockchange = function(event) {
+var createMap = function(scene, levelMap) {
+    var map = {};
+    map.bottom = -(levelMap.length - 1);
+    map.top = 0;
+    map.left = 0;
+    map.right = 0;
+    map.numDots = 0;
+    map.pacmanSpawn = null;
+    map.ghostSpawn = null;
 
-        if (document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element) {
+    var x, y;
+    for (var row = 0; row < levelMap.length; row++) {
+        y = -row;
+        map[y] = {};
+        var length = Math.floor(levelMap[row].length / 2);
+        map.right = Math.max(map.right, length);
 
-            controls.enabled = true;
+        for (var column = 0; column < levelMap[row].length; column += 2) {
+            x = Math.floor(column / 2);
 
-            blocker.style.display = 'none';
+            var cell = levelMap[row][column];
+            var object = null;
+            var objectT = null;
+            var objectC = null;
 
-        } else {
-
-            controls.enabled = false;
-
-            blocker.style.display = '-webkit-box';
-            blocker.style.display = '-moz-box';
-            blocker.style.display = 'box';
-
-            instructions.style.display = '';
-
-        }
-
-    }
-
-    var pointerlockerror = function(event) {
-
-        instructions.style.display = '';
-
-    }
-
-    // Hook pointer lock state change events
-    document.addEventListener('pointerlockchange', pointerlockchange, false);
-    document.addEventListener('mozpointerlockchange', pointerlockchange, false);
-    document.addEventListener('webkitpointerlockchange', pointerlockchange, false);
-
-    document.addEventListener('pointerlockerror', pointerlockerror, false);
-    document.addEventListener('mozpointerlockerror', pointerlockerror, false);
-    document.addEventListener('webkitpointerlockerror', pointerlockerror, false);
-
-    instructions.addEventListener('click', function(event) {
-
-        instructions.style.display = 'none';
-
-        // Ask the browser to lock the pointer
-        element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
-
-        if (/Firefox/i.test(navigator.userAgent)) {
-
-            var fullscreenchange = function(event) {
-
-                if (document.fullscreenElement === element || document.mozFullscreenElement === element || document.mozFullScreenElement === element) {
-
-                    document.removeEventListener('fullscreenchange', fullscreenchange);
-                    document.removeEventListener('mozfullscreenchange', fullscreenchange);
-
-                    element.requestPointerLock();
-                }
+            if (cell === '#') {
+                object = createWall();
+            } else if (cell === '.') {
+                object = createDots();
+                map.numDots += 1;
+            } else if (cell === 'o') {
+                object = createCherry();
+            } else if (cell === 'P') {
+                // map.pacmanSpawn = new THREE.Vector3(x, y, 0);
+                object = createPacman();
+                pacman = object;
+            } else if (cell === 'G') {
+                // map.ghostSpawn = new THREE.Vector3(x, y, 0);
+            } else if (cell === 'T') {
+                objectT = createTerrain();
+            } else if (cell === 'C') {
+                objectC = createSun();
+                objectC.position.set(x, y, 5);
+                map[y][x] = objectC;
+                scene.add(objectC);
+                sun = objectC;
+                objectC = createEarth();
+                objectC.position.set(x, y - 3, 5);
+                map[y][x] = objectC;
+                scene.add(objectC);
+                earth = objectC;
+                // sun = objectC;
+                // scene.add(createEarth());
+                // objectC = createEarth();
+            }
+            if (object !== null) {
+                object.position.set(x, y, 0);
+                map[y][x] = object;
+                scene.add(object);
+            } else if (objectT !== null) {
+                objectT.position.set(x, y, -1);
+                map[y][x] = objectT;
+                scene.add(objectT);
 
             }
-
-            document.addEventListener('fullscreenchange', fullscreenchange, false);
-            document.addEventListener('mozfullscreenchange', fullscreenchange, false);
-
-            element.requestFullscreen = element.requestFullscreen || element.mozRequestFullscreen || element.mozRequestFullScreen || element.webkitRequestFullscreen;
-
-            element.requestFullscreen();
-
-        } else {
-
-            element.requestPointerLock();
-
         }
-
-    }, false);
-
-} else {
-
-    instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
-
-}
-
-function init() {
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-    // camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-
-
-    scene = new THREE.Scene();
-    // scene.fog = new THREE.Fog(0xffffff, 0, 750);
-    scene.background = new THREE.Color(0xf0f0f0);
-
-    var light = new THREE.DirectionalLight(0xffffff, 1.5);
-    light.position.set(1, 1, 1);
-    scene.add(light);
-
-    var light = new THREE.DirectionalLight(0xffffff, 0.75);
-    light.position.set(-1, -0.5, -1);
-    scene.add(light);
-
-    controls = new PointerLockControls(camera);
-    scene.add(controls.getObject());
-
-    ray = new THREE.Ray();
-    ray.direction.set(0, -1, 0);
-
-    var pacmanGeometry = new THREE.SphereGeometry(20, 32, 32);
-    var pacmanMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-    pacman = new THREE.Mesh(pacmanGeometry, pacmanMaterial);
-    pacman.position.y = 20;
-    scene.add(pacman);
-    var listener = new THREE.AudioListener();
-    camera.add(listener);
-    var sound = new THREE.Audio(listener);
-    var audioLoader = new THREE.AudioLoader();
-    audioLoader.load('sounds/pacman_chomp.wav', function(buffer) {
-        sound.setBuffer(buffer);
-        sound.setLoop(true);
-        sound.setVolume(1);
-        sound.play();
-    });
-    camera.position.y = pacman.position.y;
-    camera.position.z = pacman.position.z + 50;
-
-    var jsonLoader = new THREE.JSONLoader();
-    // jsonLoader.load('../models/xwing.js', object_to_scene);
-
-    jsonLoader.load('../models/xwing.js', object_to_scene);
-    // floor
-    var earthTexture = new THREE.Texture();
-    var loader = new THREE.ImageLoader();
-    loader.addEventListener('load', function(event) {
-        earthTexture.image = event.content;
-        earthTexture.needsUpdate = true;
-    });
-    loader.load('../textures/lantai.jpg');
-    // var controls = new OrbitControls(camera, renderer.domElement);
-    geometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
-    geometry.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-
-    material = new THREE.MeshBasicMaterial({
-        map: earthTexture,
-        overdraw: true,
-    });
-
-    mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-
-
-    renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    document.body.appendChild(renderer.domElement);
-
-    window.addEventListener('resize', onWindowResize, false);
-
-}
-document.addEventListener("keydown", onDocumentKeyDown, false);
-
-function onDocumentKeyDown(event) {
-    var keyCode = event.which;
-    if (keyCode == 87) {
-        pacman.position.z -= 1;
-    } else if (keyCode == 83) {
-        pacman.position.z += 1;
-    } else if (keyCode == 65) {
-        pacman.position.x -= 1;
-    } else if (keyCode == 68) {
-        pacman.position.x += 1;
-    } else if (keyCode == 32) {
-        pacman.position.set(0, 0, 0);
     }
 
+    map.centerX = (map.left + map.right) / 2;
+    map.centerY = (map.bottom + map.top) / 2;
+
+    return map;
+};
+var createWall = function() {
+    var geometryWall = new THREE.BoxGeometry(1, 1, 1);
+    var materialWall = new THREE.MeshLambertMaterial({ map: new THREE.TextureLoader().load('textures/wall.jpg') });
+    return function() {
+        var wall = new THREE.Mesh(geometryWall, materialWall);
+        wall.isWall = true;
+
+        return wall;
+    };
+}();
+
+var createPacman = function() {
+    var geometryPacman = new THREE.SphereGeometry(0.5, 32, 32);
+    var materialPacman = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    var pacman = new THREE.Mesh(geometryPacman, materialPacman);
+    return pacman;
+}
+var createDots = function() {
+    var geometryDots = new THREE.SphereGeometry(0.1, 32, 32);
+    var materialDots = new THREE.MeshBasicMaterial({ color: 0xffc78f });
+    var dots = new THREE.Mesh(geometryDots, materialDots);
+    return dots;
+}
+var createCherry = function() {
+    var geometryCherry = new THREE.SphereGeometry(0.3, 32, 32);
+    var materialCherry = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    var cherry = new THREE.Mesh(geometryCherry, materialCherry);
+    return cherry;
+}
+var createTerrain = function() {
+        var geometry = new THREE.PlaneGeometry(100, 50, 50);
+        var material = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load('textures/lantai.jpg'), side: THREE.DoubleSide });
+        var plane = new THREE.Mesh(geometry, material);
+        return plane;
+    }
+    // var renderer = createRenderer();
+var createScene = function() {
+    var scene = new THREE.Scene();
+
+    // Add lighting
+    scene.add(new THREE.AmbientLight(0x888888));
+    var light = new THREE.SpotLight('white', 0.5);
+    light.position.set(0, 0, 50);
+    scene.add(light);
+
+    return scene;
+};
+var createSun = function() {
+    var sunGeo = new THREE.SphereGeometry(2, 20, 20);
+    var sunMat = new THREE.MeshPhongMaterial({
+        map: textureSun
+    });
+    var sun = new THREE.Mesh(sunGeo, sunMat);
+    return sun;
+}
+var createEarth = function() {
+    var bumiGeo = new THREE.SphereGeometry(0.4, 20, 20);
+    var bumiMat = new THREE.MeshPhongMaterial({
+        map: textureBumi
+    });
+    var bumi = new THREE.Mesh(bumiGeo, bumiMat);
+    return bumi;
+}
+
+document.body.onkeydown = function(evt) {
+    var speed = 0.2;
+    if (evt.key == 'w' || evt.keyCode == '38') {
+        // console.log("success");
+        pacman.position.y += 0.1;
+        camera.position.y += 0.1;
+        // camera.position.y += 0.1;
+        // controls.moveForward(speed);
+    } else if (evt.key == 's' || evt.keyCode == 40) {
+        pacman.position.y -= 0.1;
+        camera.position.y -= 0.1;
+        // camera.position.y -= 0.1;
+        // controls.moveForward(-speed);
+    } else if (evt.key == 'd') {
+        pacman.position.x += 0.1;
+        // camera.position.x += 0.1;
+        // controls.moveRight(speed);
+    } else if (evt.key == 'a') {
+        pacman.position.x -= 0.1;
+        // camera.position.x -= 0.1;
+        // controls.moveRight(-speed);
+    } else if (evt.keyCode == 39) {
+        // pacman.position.x += 0.1;
+        pacman.rotation.y -= 0.1;
+        // camera.position.x -= 0.1;
+        // camera.position.y += 0.1;
+        // camera.rotation.y -= 0.1;
+        // camera.position.x -= 0.1;
+        // pacman.rotation.x += 0.1;
+        // camera.rotation.y += 0.1;
+        // controls.moveRight(speed);
+    } else if (evt.keyCode == 37) {
+        // pacman.position.x += 0.1;
+        pacman.rotation.y += 0.1;
+        // camera.rotation.y += 0.1;
+        // pacman.rotation.x += 0.1;
+        // camera.rotation.y += 0.1;
+        // controls.moveRight(speed);
+    }
+}
+
+var renderer = new THREE.WebGLRenderer();
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// var controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+// camera.rotation.y = 90 * Math.PI / 180;
+
+// controls.minPolarAngle = Math.PI / 2;
+// controls.maxPolarAngle = Math.PI / 2;
+// controls.minAzimuthAngle = Math.PI / 2;
+// controls.maxAzimuthAngle = Math.PI / 2;
+var scene = createScene();
+scene.background = new THREE.TextureLoader().load('textures/bg.jpg');
+var map = createMap(scene, MAP_LEVEL1);
+
+// controls.update();
+
+
+// camera.position.set(pacman.position.x, pacman.position.y, pacman.position.z + 1);
+camera.position.set(pacman.position.x, pacman.position.y - 2.5, pacman.position.z + 1);
+
+camera.rotation.set(90 * Math.PI / 180, 0, 0);
+
+function main() {
+    sun.rotation.x += Math.PI / 500;
+    sun.rotation.y += Math.PI / 500;
+    earth.rotation.x += Math.PI / 300;
+    earth.rotation.y += Math.PI / 300;
+    // sun.rotation.x += 0.1;
+    camera.position.set(pacman.position.x, camera.position.y, pacman.position.z + 1);
+    camera.rotation.set(camera.rotation.x, pacman.rotation.y, pacman.rotation.z);
+    // controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(main);
 };
 
-function object_to_scene(geometry) {
-    const material = new THREE.MeshFaceMaterial();
 
-    xwing = new THREE.Object3D();
-
-    ship = new THREE.Mesh(geometry, material);
-
-    const scale = 1;
-    ship.scale.set(scale, scale, scale);
-    xwing.position.set(0, 0, -700);
-    ship.rotation.set(0, Math.PI / 2, 0);
-
-    ship.castShadow = true;
-    ship.receiveShadow = false;
-
-    xwing.addChild(ship);
-    scene.addChild(xwing);
-}
-
-function onWindowResize() {
-
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-}
-
-function animate() {
-    // pacman.position.z -= 1;
-    camera.position.y = pacman.position.y + 20;
-    camera.position.x = pacman.position.x;
-    camera.position.z = pacman.position.z + 100;
-
-    requestAnimationFrame(animate);
-
-    controls.isOnObject(false);
-
-    ray.origin.copy(controls.getObject().position);
-    ray.origin.y -= 10;
-
-    var intersections = ray.intersectObjects(objects);
-
-    if (intersections.length > 0) {
-
-        var distance = intersections[0].distance;
-
-        if (distance > 0 && distance < 10) {
-
-            controls.isOnObject(true);
-        }
-    }
-    // controls.update(Date.now() - time);
-    renderer.render(scene, camera);
-    time = Date.now();
-}
-
-init();
-animate();
+main();
