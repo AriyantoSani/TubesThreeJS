@@ -2,9 +2,26 @@ var pacman = null;
 
 var camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1000);
 var textureSun = new THREE.TextureLoader().load('textures/matahari.jpg');
+var textureMerku = new THREE.TextureLoader().load('textures/merkurius.jpg');
+var textureVenus = new THREE.TextureLoader().load('textures/venus.jpg');
 var textureBumi = new THREE.TextureLoader().load('textures/bumi.jpg');
+var textureMars = new THREE.TextureLoader().load('textures/mars.jpg');
+var textureJupiter = new THREE.TextureLoader().load('textures/jupiter.jpg');
+var textureSatur = new THREE.TextureLoader().load('textures/saturnus.jpg');
+var textureCincin = new THREE.TextureLoader().load('textures/cincin.jpg');
 var sun = null;
+var merku = null;
+var venus = null;
+var mars = null;
+var jupiter = null;
+var saturnus = null;
 var earth = null;
+var FpivotBumi = null;
+var FpivotJupiter = null;
+var FpivotMars = null;
+var FpivotMerku = null;
+var FpivotSaturnus = null;
+var FpivotVenus = null;
 var MAP_LEVEL1 = [
     '# # # # # # # # # # # # # # # # # # # # # # # # # # # #',
     '# o . . . . . . . . . . . # # . . . . . . . . . . . o #',
@@ -94,18 +111,77 @@ var createMap = function(scene, levelMap) {
                 objectT = createTerrain();
             } else if (cell === 'C') {
                 objectC = createSun();
-                objectC.position.set(x, y, 5);
+                objectC.position.set(x, y, 10);
                 map[y][x] = objectC;
                 scene.add(objectC);
                 sun = objectC;
+
+                objectC = createMerku();
+                objectC.position.set(x, y - 3, 10);
+                map[y][x] = objectC;
+                scene.add(objectC);
+                merku = objectC;
+
+                objectC = createVenus();
+                objectC.position.set(x, y - 4, 10);
+                map[y][x] = objectC;
+                scene.add(objectC);
+                venus = objectC;
+
                 objectC = createEarth();
-                objectC.position.set(x, y - 3, 5);
+                objectC.position.set(x, y - 5, 10);
                 map[y][x] = objectC;
                 scene.add(objectC);
                 earth = objectC;
-                // sun = objectC;
-                // scene.add(createEarth());
-                // objectC = createEarth();
+
+                objectC = createMars();
+                objectC.position.set(x, y - 6, 10);
+                map[y][x] = objectC;
+                scene.add(objectC);
+                mars = objectC;
+
+                objectC = createJupiter();
+                objectC.position.set(x, y - 7, 10);
+                map[y][x] = objectC;
+                scene.add(objectC);
+                jupiter = objectC;
+
+                objectC = createSaturnus();
+                objectC.position.set(x, y - 9, 10);
+                map[y][x] = objectC;
+                scene.add(objectC);
+                saturnus = objectC;
+
+                var pivotMerku = new THREE.Group();
+                var pivotVenus = new THREE.Group();
+                var pivotBumi = new THREE.Group();
+                var pivotMars = new THREE.Group();
+                var pivotJupiter = new THREE.Group();
+                var pivotSaturnus = new THREE.Group();
+                pivotMerku.position.z = 10
+                pivotVenus.position.z = 10
+                pivotBumi.position.z = 10
+                pivotMars.position.z = 10
+                pivotJupiter.position.z = 10
+                pivotSaturnus.position.z = 10
+                scene.add( pivotMerku );
+                scene.add( pivotVenus );
+                scene.add( pivotBumi );
+                scene.add( pivotMars );
+                scene.add( pivotJupiter);
+                scene.add( pivotSaturnus);
+                pivotMerku.add(merku);
+                pivotVenus.add(venus);
+                pivotBumi.add(earth);
+                pivotMars.add(mars);
+                pivotJupiter.add(jupiter);
+                pivotSaturnus.add(saturnus);
+                FpivotBumi = pivotBumi;
+                FpivotJupiter = pivotJupiter;
+                FpivotMars = pivotMars;
+                FpivotMerku = pivotMerku;
+                FpivotSaturnus = pivotSaturnus;
+                FpivotVenus = pivotVenus;
             }
             if (object !== null) {
                 object.position.set(x, y, 0);
@@ -180,6 +256,22 @@ var createSun = function() {
     var sun = new THREE.Mesh(sunGeo, sunMat);
     return sun;
 }
+var createMerku = function() {
+    var merkuGeo = new THREE.SphereGeometry(0.1, 20, 20);
+    var merkuMat = new THREE.MeshPhongMaterial({
+        map: textureMerku
+    });
+    var merku = new THREE.Mesh(merkuGeo, merkuMat);
+    return merku;
+}
+var createVenus = function() {
+    var venusGeo = new THREE.SphereGeometry(0.2, 20, 20);
+    var venusMat = new THREE.MeshPhongMaterial({
+        map: textureVenus
+    });
+    var venus = new THREE.Mesh(venusGeo, venusMat);
+    return venus;
+}
 var createEarth = function() {
     var bumiGeo = new THREE.SphereGeometry(0.4, 20, 20);
     var bumiMat = new THREE.MeshPhongMaterial({
@@ -187,6 +279,38 @@ var createEarth = function() {
     });
     var bumi = new THREE.Mesh(bumiGeo, bumiMat);
     return bumi;
+}
+var createMars = function() {
+    var marsGeo = new THREE.SphereGeometry(0.1, 20, 20);
+    var marsMat = new THREE.MeshPhongMaterial({
+        map: textureMars
+    });
+    var mars = new THREE.Mesh(marsGeo, marsMat);
+    return mars;
+}
+var createJupiter = function() {
+    var jupiterGeo = new THREE.SphereGeometry(0.8, 50, 50);
+    var jupiterMat = new THREE.MeshPhongMaterial({
+        map: textureJupiter
+    });
+    var jupiter = new THREE.Mesh(jupiterGeo, jupiterMat);
+    return jupiter;
+}
+var createSaturnus = function() {
+    var saturGeo = new THREE.SphereGeometry(0.8, 50, 50);
+    var saturMat = new THREE.MeshPhongMaterial({
+        map: textureSatur
+    });
+    var satur = new THREE.Mesh(saturGeo, saturMat);
+    var cincinGeo = new THREE.CircleGeometry( 1.2, 32 );
+    var cincinMat = new THREE.MeshPhongMaterial({
+        map: textureCincin
+    });
+    var cincin = new THREE.Mesh( cincinGeo, cincinMat );
+    var saturnus = new THREE.Group();
+    saturnus.add(satur);
+    saturnus.add(cincin);
+    return saturnus;
 }
 
 document.body.onkeydown = function(evt) {
@@ -259,7 +383,22 @@ function main() {
     sun.rotation.y += Math.PI / 500;
     earth.rotation.x += Math.PI / 300;
     earth.rotation.y += Math.PI / 300;
-    // sun.rotation.x += 0.1;
+    venus.rotation.x+=Math.PI/300;
+    venus.rotation.y+=Math.PI/300;
+    merku.rotation.x+=Math.PI/300;
+    merku.rotation.y+=Math.PI/300;
+    mars.rotation.x+=Math.PI/300;
+    mars.rotation.y+=Math.PI/300;
+    jupiter.rotation.x+=Math.PI/300;
+    jupiter.rotation.y+=Math.PI/300;
+    saturnus.rotation.x+=Math.PI/300;
+    // pivot rotation
+    FpivotBumi.rotation.z+=Math.PI/190;
+    FpivotMerku.rotation.z+=Math.PI/290;
+    FpivotVenus.rotation.z+=Math.PI/400;
+    FpivotMars.rotation.z+=Math.PI/250;
+    FpivotJupiter.rotation.z+=Math.PI/350;
+    FpivotSaturnus.rotation.z+=Math.PI/210;
     camera.position.set(pacman.position.x, camera.position.y, pacman.position.z + 1);
     camera.rotation.set(camera.rotation.x, pacman.rotation.y, pacman.rotation.z);
     // controls.update();
