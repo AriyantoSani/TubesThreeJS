@@ -1,6 +1,6 @@
 var pacman = null;
 
-var camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 1000);
+var camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 1, 1000);
 var textureSun = new THREE.TextureLoader().load('textures/matahari.jpg');
 var textureMerku = new THREE.TextureLoader().load('textures/merkurius.jpg');
 var textureVenus = new THREE.TextureLoader().load('textures/venus.jpg');
@@ -61,13 +61,13 @@ camera.add(listener);
 
 var sound = new THREE.Audio(listener);
 
-// var audioLoader = new THREE.AudioLoader();
-// audioLoader.load('sounds/pacman_beginning.mp3', function(buffer) {
-//     sound.setBuffer(buffer);
-//     sound.setLoop(true);
-//     sound.setVolume(0.5);
-//     sound.play();
-// });
+var audioLoader = new THREE.AudioLoader();
+audioLoader.load('sounds/pacman_beginning.mp3', function(buffer) {
+    sound.setBuffer(buffer);
+    sound.setLoop(true);
+    sound.setVolume(0.5);
+    sound.play();
+});
 
 var createMap = function(scene, levelMap) {
     var map = {};
