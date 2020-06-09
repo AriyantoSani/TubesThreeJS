@@ -22,6 +22,7 @@ var FpivotMars = null;
 var FpivotMerku = null;
 var FpivotSaturnus = null;
 var FpivotVenus = null;
+
 var MAP_LEVEL1 = [
     '# # # # # # # # # # # # # # # # # # # # # # # # # # # #',
     '# o . . . . . . . . . . . # # . . . . . . . . . . . o #',
@@ -102,7 +103,6 @@ var createMap = function(scene, levelMap) {
             } else if (cell === 'o') {
                 object = createCherry();
             } else if (cell === 'P') {
-                // map.pacmanSpawn = new THREE.Vector3(x, y, 0);
                 object = createPacman();
                 pacman = object;
             } else if (cell === 'G') {
@@ -132,9 +132,6 @@ var createMap = function(scene, levelMap) {
                 map[y][x] = objectC;
                 scene.add(objectC);
                 earth = objectC;
-                // sun = objectC;
-                // scene.add(createEarth());
-                // objectC = createEarth();
 
                 objectC = createMars();
                 objectC.position.set(x, y - 6, 10);
@@ -207,6 +204,7 @@ var createWall = function() {
     var geometryWall = new THREE.BoxGeometry(1, 1, 1);
     var materialWall = new THREE.MeshLambertMaterial({
         map: new THREE.TextureLoader().load('textures/wall.jpg')
+
     });
     return function() {
         var wall = new THREE.Mesh(geometryWall, materialWall);
@@ -229,9 +227,15 @@ var createDots = function() {
     var materialDots = new THREE.MeshBasicMaterial({
         color: 0xffc78f
     });
-    var dots = new THREE.Mesh(geometryDots, materialDots);
-    return dots;
-}
+
+    return function() {
+        var dots = new THREE.Mesh(geometryDots, materialDots);
+        dots.isDot = true;
+
+        return dots;
+    };
+}();
+
 var createCherry = function() {
     var geometryCherry = new THREE.SphereGeometry(0.3, 32, 32);
     var materialCherry = new THREE.MeshBasicMaterial({
@@ -325,69 +329,78 @@ var createSaturnus = function() {
     saturnus.add(cincin);
     return saturnus;
 }
-
+var getAt = function(map, position) {
+    var x = Math.round(position.x),
+        y = Math.round(position.y);
+    return map[y] && map[y][x];
+}
+var isWall = function(map, position) {
+    var cell = getAt(map, position);
+    return cell && cell.isWall === true;
+};
+var isDot = function(map, position) {
+    var cell = getAt(map, position);
+    return cell && cell.isDot === true;
+};
+var removeAt = function(map, position) {
+    var x = Math.round(position.x),
+        y = Math.round(position.y);
+    if (map[y] && map[y][x]) {
+        map[y][x].visible = false;
+    }
+}
 document.body.onkeydown = function(evt) {
-    var speed = 0.2;
-    if (evt.key == 'w' || evt.keyCode == '38') {
-        // console.log("success");
+    var newPosition = new THREE.Vector3();
+    console.log(map.numDots);
+    newPosition.getPositionFromMatrix(pacman.matrixWorld);
+    if ((evt.key == 'w' || evt.keyCode == '38')) {
         pacman.position.y += 0.1;
-        camera.position.y += 0.1;
+        if (isWall(map, pacman.position) == true) {
+            pacman.position.y -= 0.1;
+        }
         audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
             sound.setBuffer(buffer);
             sound.setLoop(false);
             sound.setVolume(0.5);
             sound.play();
         });
-        // camera.position.y += 0.1;
-        // controls.moveForward(speed);
-    } else if (evt.key == 's' || evt.keyCode == 40) {
+    } else if ((evt.key == 's' || evt.keyCode == 40)) {
         pacman.position.y -= 0.1;
-        camera.position.y -= 0.1;
+        if (isWall(map, pacman.position) == true) {
+            pacman.position.y += 0.1;
+        }
         audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
             sound.setBuffer(buffer);
             sound.setLoop(false);
             sound.setVolume(0.5);
             sound.play();
         });
-        // camera.position.y -= 0.1;
-        // controls.moveForward(-speed);
     } else if (evt.key == 'd') {
         pacman.position.x += 0.1;
+        if (isWall(map, pacman.position) == true) {
+            pacman.position.x -= 0.1;
+        }
         audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
             sound.setBuffer(buffer);
             sound.setLoop(false);
             sound.setVolume(0.5);
             sound.play();
         });
-        // camera.position.x += 0.1;
-        // controls.moveRight(speed);
     } else if (evt.key == 'a') {
         pacman.position.x -= 0.1;
+        if (isWall(map, pacman.position) == true) {
+            pacman.position.x += 0.1;
+        }
         audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
             sound.setBuffer(buffer);
             sound.setLoop(false);
             sound.setVolume(0.5);
             sound.play();
         });
-        // camera.position.x -= 0.1;
-        // controls.moveRight(-speed);
-    } else if (evt.keyCode == 39) {
-        // pacman.position.x += 0.1;
-        pacman.rotation.y -= 0.1;
-        // camera.position.x -= 0.1;
-        // camera.position.y += 0.1;
-        // camera.rotation.y -= 0.1;
-        // camera.position.x -= 0.1;
-        // pacman.rotation.x += 0.1;
-        // camera.rotation.y += 0.1;
-        // controls.moveRight(speed);
-    } else if (evt.keyCode == 37) {
-        // pacman.position.x += 0.1;
-        pacman.rotation.y += 0.1;
-        // camera.rotation.y += 0.1;
-        // pacman.rotation.x += 0.1;
-        // camera.rotation.y += 0.1;
-        // controls.moveRight(speed);
+    }
+    if (isDot(map, pacman.position) == true && map[Math.round(pacman.position.y)][Math.round(pacman.position.x)].visible == true) {
+        removeAt(map, pacman.position);
+        map.numDots -= 1;
     }
 }
 
@@ -395,22 +408,12 @@ var renderer = new THREE.WebGLRenderer();
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// var controls = new THREE.OrbitControls(camera, renderer.domElement);
+var controls = new THREE.PointerLockControls(camera, renderer.domElement);
 
-// camera.rotation.y = 90 * Math.PI / 180;
-
-// controls.minPolarAngle = Math.PI / 2;
-// controls.maxPolarAngle = Math.PI / 2;
-// controls.minAzimuthAngle = Math.PI / 2;
-// controls.maxAzimuthAngle = Math.PI / 2;
 var scene = createScene();
 scene.background = new THREE.TextureLoader().load('textures/bg.jpg');
 var map = createMap(scene, MAP_LEVEL1);
 
-// controls.update();
-
-
-// camera.position.set(pacman.position.x, pacman.position.y, pacman.position.z + 1);
 camera.position.set(pacman.position.x, pacman.position.y - 2.5, pacman.position.z + 1);
 
 camera.rotation.set(90 * Math.PI / 180, 0, 0);
@@ -436,8 +439,8 @@ function main() {
     FpivotMars.rotation.z += Math.PI / 250;
     FpivotJupiter.rotation.z += Math.PI / 350;
     FpivotSaturnus.rotation.z += Math.PI / 210;
-    camera.position.set(pacman.position.x, camera.position.y, pacman.position.z + 1);
-    camera.rotation.set(camera.rotation.x, pacman.rotation.y, pacman.rotation.z);
+    camera.position.set(pacman.position.x, pacman.position.y - 2.5, pacman.position.z + 1);
+    // camera.rotation.set(camera.rotation.x, pacman.rotation.y, pacman.rotation.z);
     // controls.update();
     renderer.render(scene, camera);
     requestAnimationFrame(main);
