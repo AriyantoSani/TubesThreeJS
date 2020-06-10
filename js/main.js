@@ -251,7 +251,7 @@ var createGhost = function() {
     var ghostGeometry = new THREE.SphereGeometry(GHOST_RADIUS, 16, 16);
     return function(scene, position) {
         // Give each ghost it's own material so we can change the colors of individual ghosts.
-        var ghostMaterial = new THREE.MeshPhongMaterial({ color: 'red' });
+        var ghostMaterial = new THREE.MeshPhongMaterial({ color: 'blue' });
         var ghost = new THREE.Mesh(ghostGeometry, ghostMaterial);
         ghost.isGhost = true;
         ghost.isWrapper = true;
