@@ -1,5 +1,9 @@
 var pacman = null;
-
+var UP = new THREE.Vector3(0, 0, 1);
+var LEFT = new THREE.Vector3(-1, 0, 0);
+var TOP = new THREE.Vector3(0, 1, 0);
+var RIGHT = new THREE.Vector3(1, 0, 0);
+var BOTTOM = new THREE.Vector3(0, -1, 0);
 var camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 1000);
 var textureSun = new THREE.TextureLoader().load('textures/matahari.jpg');
 var textureMerku = new THREE.TextureLoader().load('textures/merkurius.jpg');
@@ -22,7 +26,22 @@ var FpivotMars = null;
 var FpivotMerku = null;
 var FpivotSaturnus = null;
 var FpivotVenus = null;
+var listener = new THREE.AudioListener();
+camera.add(listener);
+var sound = new THREE.Audio(listener);
+var lives = 3;
 
+var audioLoader = new THREE.AudioLoader();
+audioLoader.load('sounds/pacman_beginning.mp3', function(buffer) {
+    sound.setBuffer(buffer);
+    sound.setLoop(false);
+    sound.setVolume(0.5);
+    sound.play();
+});
+var ghost;
+var remove = [];
+var numGhosts = 0;
+var renderer = new THREE.WebGLRenderer();
 var MAP_LEVEL1 = [
     '# # # # # # # # # # # # # # # # # # # # # # # # # # # #',
     '# o . . . . . . . . . . . # # . . . . . . . . . . . o #',
@@ -57,18 +76,6 @@ var MAP_LEVEL1 = [
     '# # # # # # # # # # # # # # # # # # # # # # # # # # # #'
 ];
 
-var listener = new THREE.AudioListener();
-camera.add(listener);
-
-var sound = new THREE.Audio(listener);
-
-var audioLoader = new THREE.AudioLoader();
-audioLoader.load('sounds/pacman_beginning.mp3', function(buffer) {
-    sound.setBuffer(buffer);
-    sound.setLoop(false);
-    sound.setVolume(0.5);
-    sound.play();
-});
 
 var createMap = function(scene, levelMap) {
     var map = {};
@@ -77,7 +84,6 @@ var createMap = function(scene, levelMap) {
     map.left = 0;
     map.right = 0;
     map.numDots = 0;
-    map.pacmanSpawn = null;
     map.ghostSpawn = null;
 
     var x, y;
@@ -106,7 +112,7 @@ var createMap = function(scene, levelMap) {
                 object = createPacman();
                 pacman = object;
             } else if (cell === 'G') {
-                // map.ghostSpawn = new THREE.Vector3(x, y, 0);
+                map.ghostSpawn = new THREE.Vector3(x, y, 0);
             } else if (cell === 'T') {
                 objectT = createTerrain();
             } else if (cell === 'C') {
@@ -236,14 +242,37 @@ var createDots = function() {
     };
 }();
 
+var GHOST_SPEED = 0.7,
+    GHOST_RADIUS = 0.6;
+var createGhost = function() {
+    var ghostGeometry = new THREE.SphereGeometry(GHOST_RADIUS, 16, 16);
+    return function(scene, position) {
+        // Give each ghost it's own material so we can change the colors of individual ghosts.
+        var ghostMaterial = new THREE.MeshPhongMaterial({ color: 'red' });
+        var ghost = new THREE.Mesh(ghostGeometry, ghostMaterial);
+        ghost.isGhost = true;
+        ghost.isWrapper = true;
+        ghost.isAfraid = false;
+
+        // Ghosts start moving left.
+        ghost.position.copy(position);
+        ghost.direction = new THREE.Vector3(-1, 0, 0);
+
+        scene.add(ghost);
+    };
+}();
 var createCherry = function() {
     var geometryCherry = new THREE.SphereGeometry(0.3, 32, 32);
     var materialCherry = new THREE.MeshBasicMaterial({
         color: 0xff0000
     });
-    var cherry = new THREE.Mesh(geometryCherry, materialCherry);
-    return cherry;
-}
+
+    return function() {
+        var cherry = new THREE.Mesh(geometryCherry, materialCherry);
+        cherry.isCherry = true;
+        return cherry;
+    };
+}();
 var createTerrain = function() {
         var geometry = new THREE.PlaneGeometry(100, 50, 50);
         var material = new THREE.MeshBasicMaterial({
@@ -342,6 +371,11 @@ var isDot = function(map, position) {
     var cell = getAt(map, position);
     return cell && cell.isDot === true;
 };
+var isCherry = function(map, position) {
+    var cell = getAt(map, position);
+    return cell && cell.isCherry === true;
+};
+
 var removeAt = function(map, position) {
     var x = Math.round(position.x),
         y = Math.round(position.y);
@@ -350,119 +384,179 @@ var removeAt = function(map, position) {
     }
 }
 document.body.onkeydown = function(evt) {
-        console.log(map.numDots);
-        let speed = 0.1;
-        var exPosition = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
-        if ((evt.key == 'w' || evt.keyCode == '38')) {
-            camera.position.addScaledVector(direction, speed);
-            if (isWall(map, camera.position) == true) {
-                camera.position.set(exPosition.x, exPosition.y, exPosition.z);
-            }
-            audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
-                sound.setBuffer(buffer);
-                sound.setLoop(false);
-                sound.setVolume(0.5);
-                sound.play();
-            });
-        } else if ((evt.key == 's' || evt.keyCode == 40)) {
-            camera.position.addScaledVector(direction, -speed);
-            if (isWall(map, camera.position) == true) {
-                camera.position.set(exPosition.x, exPosition.y, exPosition.z);
-            }
-            audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
-                sound.setBuffer(buffer);
-                sound.setLoop(false);
-                sound.setVolume(0.5);
-                sound.play();
-            });
-        } else if (evt.key == 'd') {
-            // pacman.position.x += 0.1;
-            camera.rotation.y -= 0.1;
-            if (isWall(map, pacman.position) == true) {
-                pacman.position.x -= 0.1;
-            }
-            audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
-                sound.setBuffer(buffer);
-                sound.setLoop(false);
-                sound.setVolume(0.5);
-                sound.play();
-            });
-        } else if (evt.key == 'a') {
-            // pacman.position.x -= 0.1;
-            // pacman.rotation.y -= 0.1;
-            camera.rotation.y += 0.1;
-            if (isWall(map, pacman.position) == true) {
-                pacman.position.x += 0.1;
-            }
-            audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
-                sound.setBuffer(buffer);
-                sound.setLoop(false);
-                sound.setVolume(0.5);
-                sound.play();
-            });
+
+    let speed = 0.1;
+    var exPosition = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
+    if ((evt.key == 'w' || evt.keyCode == '38')) {
+        camera.position.addScaledVector(direction, speed);
+        if (isWall(map, camera.position) == true) {
+            camera.position.set(exPosition.x, exPosition.y, exPosition.z);
         }
-        if (isDot(map, pacman.position) == true && map[Math.round(pacman.position.y)][Math.round(pacman.position.x)].visible == true) {
-            removeAt(map, pacman.position);
-            map.numDots -= 1;
+        audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
+            sound.setBuffer(buffer);
+            sound.setLoop(false);
+            sound.setVolume(0.5);
+            sound.play();
+        });
+    } else if ((evt.key == 's' || evt.keyCode == 40)) {
+        camera.position.addScaledVector(direction, -speed);
+        if (isWall(map, camera.position) == true) {
+            camera.position.set(exPosition.x, exPosition.y, exPosition.z);
+        }
+        audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
+            sound.setBuffer(buffer);
+            sound.setLoop(false);
+            sound.setVolume(0.5);
+            sound.play();
+        });
+    } else if (evt.key == 'd') {
+        camera.rotation.y -= 0.1;
+        if (isWall(map, pacman.position) == true) {
+            pacman.position.x -= 0.1;
+        }
+        audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
+            sound.setBuffer(buffer);
+            sound.setLoop(false);
+            sound.setVolume(0.5);
+            sound.play();
+        });
+    } else if (evt.key == 'a') {
+        camera.rotation.y += 0.1;
+        if (isWall(map, pacman.position) == true) {
+            pacman.position.x += 0.1;
+        }
+        audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
+            sound.setBuffer(buffer);
+            sound.setLoop(false);
+            sound.setVolume(0.5);
+            sound.play();
+        });
+    }
+    if (isDot(map, pacman.position) == true && map[Math.round(pacman.position.y)][Math.round(pacman.position.x)].visible == true) {
+        removeAt(map, pacman.position);
+        map.numDots -= 1;
+    }
+    if (isCherry(map, pacman.position) == true && map[Math.round(pacman.position.y)][Math.round(pacman.position.x)].visible == true) {
+        removeAt(map, pacman.position);
+    }
+
+}
+
+
+
+var update = function(delta, now) {
+    scene.children.forEach(function(object) {
+        if (object.isGhost === true)
+            updateGhost(object, delta, now);
+        if (object.isWrapper === true)
+            wrapObject(object, map);
+        if (object.isTemporary === true && now > object.removeAfter)
+            remove.push(object);
+    });
+    remove.forEach(scene.remove, scene);
+    for (item in remove) {
+        if (remove.hasOwnProperty(item)) {
+            scene.remove(remove[item]);
+            delete remove[item];
         }
     }
-    // document.body.onkeydown = function(evt) {
-    //     if (evt.key == 'w') {
-    //         camera.position.addScaledVector(direction, speed);
-    //     } else if (evt.key == 'd') {
-    //         camera.position.x += 0.1;
-    //         camera.rotation.y -= 0.05;
-    //     }
-    // }
+    if (numGhosts < 4) {
+        createGhost(scene, map.ghostSpawn);
+        numGhosts += 1;
+    }
+};
 
-var renderer = new THREE.WebGLRenderer();
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-
+var updateGhost = function(ghost, delta, now) {
+    moveGhost(ghost, delta)
+}
 var scene = createScene();
 scene.background = new THREE.TextureLoader().load('textures/bg.jpg');
 var map = createMap(scene, MAP_LEVEL1);
 
 camera.position.set(pacman.position.x, pacman.position.y, pacman.position.z + 0.7);
+var firstPosition = new THREE.Vector3();
+firstPosition.copy(camera.position);
 
 camera.rotation.set(90 * Math.PI / 180, 0, 0);
 const direction = new THREE.Vector3;
 
 pacman.rotation.x = -90 * Math.PI / 180, 0, 0;
 
-// var hudCamera = createHudCamera(map);
-// var createHudCamera = function(map) {
-//     var halfWidth = (map.right - map.left) / 2,
-//         halfHeight = (map.top - map.bottom) / 2;
+var moveGhost = function() {
+    var previousPosition = new THREE.Vector3();
+    var currentPosition = new THREE.Vector3();
+    var leftTurn = new THREE.Vector3();
+    var rightTurn = new THREE.Vector3();
 
-//     var hudCamera = new THREE.OrthographicCamera(-halfWidth, halfWidth, halfHeight, -halfHeight, 1, 100);
-//     hudCamera.position.copy(new THREE.Vector3(map.centerX, map.centerY, 10));
-//     hudCamera.lookAt(new THREE.Vector3(map.centerX, map.centerY, 0));
+    return function(ghost, delta) {
+        previousPosition.copy(ghost.position).addScaledVector(ghost.direction, 0.5).round();
+        ghost.translateOnAxis(ghost.direction, delta * GHOST_SPEED);
+        currentPosition.copy(ghost.position).addScaledVector(ghost.direction, 0.5).round();
 
-//     return hudCamera;
-// };
+        if (!currentPosition.equals(previousPosition)) {
+            leftTurn.copy(ghost.direction).applyAxisAngle(UP, Math.PI / 2);
+            rightTurn.copy(ghost.direction).applyAxisAngle(UP, -Math.PI / 2);
 
-// var renderHud = function(renderer, hudCamera, scene) {
-//     // Increase size of pacman and dots in HUD to make them easier to see.
-//     scene.children.forEach(function(object) {
-//         if (object.isWall !== true)
-//             object.scale.set(2.5, 2.5, 2.5);
-//     });
+            var forwardWall = isWall(map, currentPosition);
+            var leftWall = isWall(map, currentPosition.copy(ghost.position).add(leftTurn));
+            var rightWall = isWall(map, currentPosition.copy(ghost.position).add(rightTurn));
 
-//     // Only render in the bottom left 200x200 square of the screen.
-//     renderer.enableScissorTest(true);
-//     renderer.setScissor(10, 10, 200, 200);
-//     renderer.setViewport(10, 10, 200, 200);
-//     renderer.render(scene, hudCamera);
-//     renderer.enableScissorTest(false);
+            if (!leftWall || !rightWall) {
+                var possibleTurns = [];
+                if (!forwardWall) possibleTurns.push(ghost.direction);
+                if (!leftWall) possibleTurns.push(leftTurn);
+                if (!rightWall) possibleTurns.push(rightTurn);
 
-//     // Reset scales after rendering HUD.
-//     scene.children.forEach(function(object) {
-//         object.scale.set(1, 1, 1);
-//     });
-// };
+                if (possibleTurns.length === 0)
+                    throw new Error('A ghost got stuck!');
 
+                var newDirection = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
+                ghost.direction.copy(newDirection);
+                ghost.position.round().addScaledVector(ghost.direction, delta);
+            }
+        }
+        if (currentPosition.x === Math.round(camera.position.x) && currentPosition.y === Math.round(camera.position.y)) {
+            camera.position.set(firstPosition.x, firstPosition.y, firstPosition.z);
+            lives -= 1;
+        }
+    }
+}();
+var wrapObject = function(object, map) {
+    if (object.position.x < map.left)
+        object.position.x = map.right;
+    else if (object.position.x > map.right)
+        object.position.x = map.left;
+
+    if (object.position.y > map.top)
+        object.position.y = map.bottom;
+    else if (object.position.y < map.bottom)
+        object.position.y = map.top;
+};
+
+var animationLoop = function(callback, requestFrameFunction) {
+    requestFrameFunction = requestFrameFunction || requestAnimationFrame;
+
+    var previousFrameTime = window.performance.now();
+    var animationSeconds = 0;
+
+    var render = function() {
+        var now = window.performance.now();
+        var animationDelta = (now - previousFrameTime) / 1000;
+        previousFrameTime = now;
+        animationDelta = Math.min(animationDelta, 1 / 30);
+        animationSeconds += animationDelta;
+        callback(animationDelta, animationSeconds);
+        requestFrameFunction(render);
+    };
+
+    requestFrameFunction(render);
+};
+animationLoop(function(delta, now) {
+    update(delta, now);
+});
 
 function main() {
     sun.rotation.x += Math.PI / 500;
@@ -486,10 +580,15 @@ function main() {
     FpivotJupiter.rotation.z += Math.PI / 350;
     FpivotSaturnus.rotation.z += Math.PI / 210;
     camera.getWorldDirection(direction);
-
+    document.getElementById('dots').innerHTML = map.numDots;
+    if (map.numDots === 0) {
+        alert("YOU WIN!!!");
+    } else if (lives === 0) {
+        alert("YOU LOSE!!!");
+    }
+    document.getElementById('lives').innerHTML = lives;
     pacman.position.set(camera.position.x, camera.position.y, camera.position.z - 0.3);
-    // camera.rotation.set(camera.rotation.x, pacman.rotation.y, pacman.rotation.z);
-    // controls.update();
+
     renderer.render(scene, camera);
 
     requestAnimationFrame(main);
