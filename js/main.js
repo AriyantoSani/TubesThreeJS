@@ -225,9 +225,12 @@ var createPacman = function() {
     var materialPacman = new THREE.MeshBasicMaterial({
         color: 0xffff00
     });
-    var pacman = new THREE.Mesh(geometryPacman, materialPacman);
-    return pacman;
-}
+    return function() {
+        var pacman = new THREE.Mesh(geometryPacman, materialPacman);
+        pacman.isInvicible = false;
+        return pacman;
+    };
+}();
 var createDots = function() {
     var geometryDots = new THREE.SphereGeometry(0.1, 32, 32);
     var materialDots = new THREE.MeshBasicMaterial({
@@ -252,7 +255,6 @@ var createGhost = function() {
         var ghost = new THREE.Mesh(ghostGeometry, ghostMaterial);
         ghost.isGhost = true;
         ghost.isWrapper = true;
-        ghost.isAfraid = false;
 
         // Ghosts start moving left.
         ghost.position.copy(position);
@@ -437,11 +439,16 @@ document.body.onkeydown = function(evt) {
         map.numDots -= 1;
     }
     if (isCherry(map, pacman.position) == true && map[Math.round(pacman.position.y)][Math.round(pacman.position.x)].visible == true) {
+        pacman.isInvicible = true;
+        console.log(pacman.isInvicible);
+        setTimeout(function() {
+            pacman.isInvicible = false;
+        }, 10000);
+        console.log(pacman.isInvicible);
         removeAt(map, pacman.position);
     }
 
 }
-
 
 
 var update = function(delta, now) {
@@ -518,9 +525,11 @@ var moveGhost = function() {
                 ghost.position.round().addScaledVector(ghost.direction, delta);
             }
         }
-        if (currentPosition.x === Math.round(camera.position.x) && currentPosition.y === Math.round(camera.position.y)) {
+        if (currentPosition.x === Math.round(camera.position.x) && currentPosition.y === Math.round(camera.position.y) && pacman.isInvicible == false && ghost.visible == true) {
             camera.position.set(firstPosition.x, firstPosition.y, firstPosition.z);
             lives -= 1;
+        } else if (currentPosition.x === Math.round(camera.position.x) && currentPosition.y === Math.round(camera.position.y) && pacman.isInvicible == true && ghost.visible == true) {
+            ghost.visible = false;
         }
     }
 }();
