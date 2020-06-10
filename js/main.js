@@ -244,9 +244,9 @@ var createDots = function() {
         return dots;
     };
 }();
-var gPosition;
+
 var GHOST_SPEED = 0.7,
-    GHOST_RADIUS = 0.1;
+    GHOST_RADIUS = 0.6;
 var createGhost = function() {
     var ghostGeometry = new THREE.SphereGeometry(GHOST_RADIUS, 16, 16);
     return function(scene, position) {
@@ -258,23 +258,12 @@ var createGhost = function() {
 
         // Ghosts start moving left.
         ghost.position.copy(position);
-        // printGhost(position);
         ghost.direction = new THREE.Vector3(-1, 0, 0);
 
         scene.add(ghost);
     };
 }();
-printGhost(firstPosition);
-var printGhost = function() {
-    new THREE.GLTFLoader().load('models/ghost.gltf', function(result) {
-        var ghosts;
-        ghosts = result.scene.children[0];
-        ghosts.rotation.x = Math.PI / 2;
-        ghosts.position.set(positionX.x, positionX.y, positionX.z);
-        ghosts.scale.set(0.2, 0.2, 0.2);
-        scene.add(ghosts);
-    });
-}(positionX);
+
 var createCherry = function() {
     var geometryCherry = new THREE.SphereGeometry(0.3, 32, 32);
     var materialCherry = new THREE.MeshBasicMaterial({
