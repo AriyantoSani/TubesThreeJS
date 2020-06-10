@@ -1,6 +1,6 @@
 var pacman = null;
 
-var camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 1, 1000);
+var camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 1000);
 var textureSun = new THREE.TextureLoader().load('textures/matahari.jpg');
 var textureMerku = new THREE.TextureLoader().load('textures/merkurius.jpg');
 var textureVenus = new THREE.TextureLoader().load('textures/venus.jpg');
@@ -50,7 +50,7 @@ var MAP_LEVEL1 = [
     '# . . . # # . . . . . . . P T . . . . . . . # # . . . #',
     '# # # . # # . # # . # # # # # # # # . # # . # # . # # #',
     '# # # . # # . # # . # # # # # # # # . # # . # # . # # #',
-    '# . . . . . . # # . . . . # #w . . . . # # . . . . . . #',
+    '# . . . . . . # # . . . . # # . . . . # # . . . . . . #',
     '# . # # # # # # # # # # . # # . # # # # # # # # # # . #',
     '# . # # # # # # # # # # . # # . # # # # # # # # # # . #',
     '# o . . . . . . . . . . . . . . . . . . . . . . . . o #',
@@ -350,73 +350,119 @@ var removeAt = function(map, position) {
     }
 }
 document.body.onkeydown = function(evt) {
-    var newPosition = new THREE.Vector3();
-    console.log(map.numDots);
-    newPosition.getPositionFromMatrix(pacman.matrixWorld);
-    if ((evt.key == 'w' || evt.keyCode == '38')) {
-        pacman.position.y += 0.1;
-        if (isWall(map, pacman.position) == true) {
-            pacman.position.y -= 0.1;
+        console.log(map.numDots);
+        let speed = 0.1;
+        var exPosition = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
+        if ((evt.key == 'w' || evt.keyCode == '38')) {
+            camera.position.addScaledVector(direction, speed);
+            if (isWall(map, camera.position) == true) {
+                camera.position.set(exPosition.x, exPosition.y, exPosition.z);
+            }
+            audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+            });
+        } else if ((evt.key == 's' || evt.keyCode == 40)) {
+            camera.position.addScaledVector(direction, -speed);
+            if (isWall(map, camera.position) == true) {
+                camera.position.set(exPosition.x, exPosition.y, exPosition.z);
+            }
+            audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+            });
+        } else if (evt.key == 'd') {
+            // pacman.position.x += 0.1;
+            camera.rotation.y -= 0.1;
+            if (isWall(map, pacman.position) == true) {
+                pacman.position.x -= 0.1;
+            }
+            audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+            });
+        } else if (evt.key == 'a') {
+            // pacman.position.x -= 0.1;
+            // pacman.rotation.y -= 0.1;
+            camera.rotation.y += 0.1;
+            if (isWall(map, pacman.position) == true) {
+                pacman.position.x += 0.1;
+            }
+            audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+            });
         }
-        audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
-            sound.setBuffer(buffer);
-            sound.setLoop(false);
-            sound.setVolume(0.5);
-            sound.play();
-        });
-    } else if ((evt.key == 's' || evt.keyCode == 40)) {
-        pacman.position.y -= 0.1;
-        if (isWall(map, pacman.position) == true) {
-            pacman.position.y += 0.1;
+        if (isDot(map, pacman.position) == true && map[Math.round(pacman.position.y)][Math.round(pacman.position.x)].visible == true) {
+            removeAt(map, pacman.position);
+            map.numDots -= 1;
         }
-        audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
-            sound.setBuffer(buffer);
-            sound.setLoop(false);
-            sound.setVolume(0.5);
-            sound.play();
-        });
-    } else if (evt.key == 'd') {
-        pacman.position.x += 0.1;
-        if (isWall(map, pacman.position) == true) {
-            pacman.position.x -= 0.1;
-        }
-        audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
-            sound.setBuffer(buffer);
-            sound.setLoop(false);
-            sound.setVolume(0.5);
-            sound.play();
-        });
-    } else if (evt.key == 'a') {
-        pacman.position.x -= 0.1;
-        if (isWall(map, pacman.position) == true) {
-            pacman.position.x += 0.1;
-        }
-        audioLoader.load('sounds/pacman_chomp.mp3', function(buffer) {
-            sound.setBuffer(buffer);
-            sound.setLoop(false);
-            sound.setVolume(0.5);
-            sound.play();
-        });
     }
-    if (isDot(map, pacman.position) == true && map[Math.round(pacman.position.y)][Math.round(pacman.position.x)].visible == true) {
-        removeAt(map, pacman.position);
-        map.numDots -= 1;
-    }
-}
+    // document.body.onkeydown = function(evt) {
+    //     if (evt.key == 'w') {
+    //         camera.position.addScaledVector(direction, speed);
+    //     } else if (evt.key == 'd') {
+    //         camera.position.x += 0.1;
+    //         camera.rotation.y -= 0.05;
+    //     }
+    // }
 
 var renderer = new THREE.WebGLRenderer();
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-var controls = new THREE.PointerLockControls(camera, renderer.domElement);
 
 var scene = createScene();
 scene.background = new THREE.TextureLoader().load('textures/bg.jpg');
 var map = createMap(scene, MAP_LEVEL1);
 
-camera.position.set(pacman.position.x, pacman.position.y - 2.5, pacman.position.z + 1);
+camera.position.set(pacman.position.x, pacman.position.y, pacman.position.z + 0.7);
 
 camera.rotation.set(90 * Math.PI / 180, 0, 0);
+const direction = new THREE.Vector3;
+
+pacman.rotation.x = -90 * Math.PI / 180, 0, 0;
+
+// var hudCamera = createHudCamera(map);
+// var createHudCamera = function(map) {
+//     var halfWidth = (map.right - map.left) / 2,
+//         halfHeight = (map.top - map.bottom) / 2;
+
+//     var hudCamera = new THREE.OrthographicCamera(-halfWidth, halfWidth, halfHeight, -halfHeight, 1, 100);
+//     hudCamera.position.copy(new THREE.Vector3(map.centerX, map.centerY, 10));
+//     hudCamera.lookAt(new THREE.Vector3(map.centerX, map.centerY, 0));
+
+//     return hudCamera;
+// };
+
+// var renderHud = function(renderer, hudCamera, scene) {
+//     // Increase size of pacman and dots in HUD to make them easier to see.
+//     scene.children.forEach(function(object) {
+//         if (object.isWall !== true)
+//             object.scale.set(2.5, 2.5, 2.5);
+//     });
+
+//     // Only render in the bottom left 200x200 square of the screen.
+//     renderer.enableScissorTest(true);
+//     renderer.setScissor(10, 10, 200, 200);
+//     renderer.setViewport(10, 10, 200, 200);
+//     renderer.render(scene, hudCamera);
+//     renderer.enableScissorTest(false);
+
+//     // Reset scales after rendering HUD.
+//     scene.children.forEach(function(object) {
+//         object.scale.set(1, 1, 1);
+//     });
+// };
+
 
 function main() {
     sun.rotation.x += Math.PI / 500;
@@ -439,10 +485,13 @@ function main() {
     FpivotMars.rotation.z += Math.PI / 250;
     FpivotJupiter.rotation.z += Math.PI / 350;
     FpivotSaturnus.rotation.z += Math.PI / 210;
-    camera.position.set(pacman.position.x, pacman.position.y - 2.5, pacman.position.z + 1);
+    camera.getWorldDirection(direction);
+
+    pacman.position.set(camera.position.x, camera.position.y, camera.position.z - 0.3);
     // camera.rotation.set(camera.rotation.x, pacman.rotation.y, pacman.rotation.z);
     // controls.update();
     renderer.render(scene, camera);
+
     requestAnimationFrame(main);
 };
 
