@@ -6,14 +6,32 @@
     <title>Pacman</title>
     <link rel="stylesheet" href="style.css">
     <link rel="shortcut icon" href="textures/logo.png" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 </head>
 
-<body>
-    <p>Lives : <label id="lives">0</label></p>
-    <p>Remaining Dots:<label id="dots">0</label></p>
+<body class="bg-primary">
+    <table style="margin-left: 35%;">
+        <tr>
+            <td>
+                <p class="h4"><b>Lives : </b><label id="lives">0</label>|</p>
+            </td>
+            <td>
+                <p class="h4"><b>Remaining Dots : </b><label id="dots">0</label>|</p>
+            </td>
+            <td>
+                <p class="h4"><b>Invicible : </b><label id="invicible">0</label></p>
+            </td>
+        </tr>
+    </table>
+
+
 </body>
 
 </html>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
 <script src="three.js"></script>
 <script src="gsap.js"></script>
 <script src="GLTFLoader.js"></script>

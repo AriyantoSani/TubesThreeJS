@@ -233,8 +233,8 @@ var createPacman = function() {
 }();
 var createDots = function() {
     var geometryDots = new THREE.SphereGeometry(0.1, 32, 32);
-    var materialDots = new THREE.MeshBasicMaterial({
-        color: 0xffc78f
+    var materialDots = new THREE.MeshPhongMaterial({
+        map: new THREE.TextureLoader().load('textures/dot.jpeg')
     });
 
     return function() {
@@ -264,10 +264,55 @@ var createGhost = function() {
     };
 }();
 
+//hantu
+// var senGeo = new THREE.CylinderGeometry(0.7, 0.7, 2, 20);
+// var senMat = new THREE.MeshBasicMaterial({color:0x5ce1e6});
+// var senMesh = new THREE.Mesh(senGeo,senMat);
+// // scene.add(senMesh);
+
+// var seGeo = new THREE.CylinderGeometry(0.2, 0.2, 1.37, 20);
+// var seMat = new THREE.MeshBasicMaterial({color:0x000000});
+// var seMesh = new THREE.Mesh(seGeo,seMat);
+// seMesh.position.y+=0.6;
+// seMesh.position.x+=0.05;
+// seMesh.rotation.z = Math.PI/2;
+// // scene.add(seMesh);
+
+// var baGeo = new THREE.SphereGeometry(0.7, 20, 20);
+// var baMat = new THREE.MeshBasicMaterial({color:0x5ce1e6});
+// var baMesh = new THREE.Mesh(baGeo,baMat);
+// baMesh.position.y +=1;
+// // scene.add(baMesh);
+
+// var mataaGeo = new THREE.SphereGeometry(0.1, 20, 20);
+// var mataaMat = new THREE.MeshBasicMaterial({color:0x000000});
+// var mataaMesh = new THREE.Mesh(mataaGeo,mataaMat);
+// mataaMesh.position.y +=1;
+// mataaMesh.position.x +=0.6;
+// mataaMesh.position.z +=0.3;
+// // scene.add(mataMesh);
+
+// var mataGeo = new THREE.SphereGeometry(0.1, 20, 20);
+// var mataMat = new THREE.MeshBasicMaterial({color:0x000000});
+// var mataMesh = new THREE.Mesh(mataGeo,mataMat);
+// mataMesh.position.y +=1;
+// mataMesh.position.x +=0.6;
+// mataMesh.position.z -=0.3;
+// // scene.add(mataMesh);
+
+// var grouphantu = new THREE.Group();
+// grouphantu.add(mataMesh);
+// grouphantu.add(mataaMesh);
+// grouphantu.add(baMesh);
+// grouphantu.add(seMesh);
+// grouphantu.add(senMesh);
+
+// scene.add(grouphantu);
+
 var createCherry = function() {
     var geometryCherry = new THREE.SphereGeometry(0.3, 32, 32);
-    var materialCherry = new THREE.MeshBasicMaterial({
-        color: 0xff0000
+    var materialCherry = new THREE.MeshLambertMaterial({
+        map: new THREE.TextureLoader().load('textures/cherry.jpg')
     });
 
     return function() {
@@ -484,7 +529,7 @@ var scene = createScene();
 scene.background = new THREE.TextureLoader().load('textures/bg.jpg');
 var map = createMap(scene, MAP_LEVEL1);
 
-camera.position.set(pacman.position.x, pacman.position.y, pacman.position.z + 0.7);
+camera.position.set(pacman.position.x, pacman.position.y, pacman.position.z + 0.3);
 var firstPosition = new THREE.Vector3();
 firstPosition.copy(camera.position);
 
@@ -529,8 +574,28 @@ var moveGhost = function() {
         if (currentPosition.x === Math.round(camera.position.x) && currentPosition.y === Math.round(camera.position.y) && pacman.isInvicible == false && ghost.visible == true) {
             camera.position.set(firstPosition.x, firstPosition.y, firstPosition.z);
             lives -= 1;
+            listener = new THREE.AudioListener();
+            camera.add(listener);
+            sound = new THREE.Audio(listener);
+            audioLoader = new THREE.AudioLoader();
+            audioLoader.load('sounds/pacman_death.mp3', function(buffer) {
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+            });
         } else if (currentPosition.x === Math.round(camera.position.x) && currentPosition.y === Math.round(camera.position.y) && pacman.isInvicible == true && ghost.visible == true) {
             ghost.visible = false;
+            listener = new THREE.AudioListener();
+            camera.add(listener);
+            sound = new THREE.Audio(listener);
+            audioLoader = new THREE.AudioLoader();
+            audioLoader.load('sounds/pacman_eatghost.mp3', function(buffer) {
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+            });
         }
     }
 }();
@@ -593,10 +658,31 @@ function main() {
     document.getElementById('dots').innerHTML = map.numDots;
     if (map.numDots === 0) {
         alert("YOU WIN!!!");
+        listener = new THREE.AudioListener();
+        camera.add(listener);
+        sound = new THREE.Audio(listener);
+        audioLoader = new THREE.AudioLoader();
+        audioLoader.load('sounds/win.mp3', function(buffer) {
+            sound.setBuffer(buffer);
+            sound.setLoop(false);
+            sound.setVolume(0.5);
+            sound.play();
+        });
     } else if (lives === 0) {
         alert("YOU LOSE!!!");
+        listener = new THREE.AudioListener();
+        camera.add(listener);
+        sound = new THREE.Audio(listener);
+        audioLoader = new THREE.AudioLoader();
+        audioLoader.load('sounds/lose.mp3', function(buffer) {
+            sound.setBuffer(buffer);
+            sound.setLoop(false);
+            sound.setVolume(0.5);
+            sound.play();
+        });
     }
     document.getElementById('lives').innerHTML = lives;
+    document.getElementById('invicible').innerHTML = pacman.isInvicible;
     pacman.position.set(camera.position.x, camera.position.y, camera.position.z - 0.3);
 
     renderer.render(scene, camera);
